@@ -21,7 +21,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["ruff>=0.9,<1"]
+dev = [
+    "ruff>=0.9,<1",
+    "pytest",
+    "httpx2",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]

@@ -1,8 +1,6 @@
 # URL Shortener with Click Analytics
 
-A backend-focused URL shortener built incrementally with FastAPI, PostgreSQL, Redis, and Docker.
-
-The project is built one backend concept at a time, with manual validation at each checkpoint.
+A backend-focused URL shortener built with FastAPI, PostgreSQL, Redis, and Docker.
 
 ## Features
 
@@ -109,6 +107,6 @@ in `.env` later does not change the password stored in an existing database.
 - [x] Checkpoint 6: Signup, login, JWT authentication, and link ownership
 - [x] Checkpoint 7: Custom aliases and expiration dates
 - [x] Checkpoint 8: Redis redirect caching and invalidation
-- [ ] Checkpoint 9: Docker and Docker Compose (validated; checkpoint commit pending)
-- [ ] Checkpoint 10: pytest test suite
+- [x] Checkpoint 9: Docker and Docker Compose
+- [x] Checkpoint 10: pytest test suite
 - [ ] Checkpoint 11: GitHub Actions, structured logging, and API documentation polish

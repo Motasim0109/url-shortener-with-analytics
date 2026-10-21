@@ -1,0 +1,9 @@
+services:
+  db_test:
+    image: postgres:18
+    ports:
+      - "127.0.0.1:5433:5432"
+    environment:
+      POSTGRES_DB: url_shortener_test
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
