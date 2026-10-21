@@ -1,20 +1,31 @@
 # URL Shortener with Click Analytics
 
-A backend-focused URL shortener built with FastAPI, PostgreSQL, Redis, and Docker.
+A REST API for creating short links, managing link ownership, and tracking redirect counts.
+Built with Python 3.13, FastAPI, PostgreSQL, SQLAlchemy, Redis, and Docker.
 
 ## Features
 
-- User signup and login with hashed passwords and JWT authentication.
-- Authenticated link creation, owner-filtered link listing, and private click analytics.
-- Public redirects with custom aliases and optional expiration dates.
-- PostgreSQL storage with Alembic migrations and a click event for each successful redirect.
-- Redis redirect caching with expiration-aware TTLs and PostgreSQL fallback on Redis errors.
+- Signup and login with Argon2 password hashing and JWT authentication.
+- Link creation, owner-only link listings, and private click counts.
+- Public redirects with unique custom aliases and optional expiration dates.
+- Redis caching with PostgreSQL fallback when the cache is unavailable.
+- Automated tests and GitHub Actions checks on pushes and pull requests.
+
+## Design Decisions
+
+- **PostgreSQL is the source of truth.** Alembic manages schema changes, and a database unique
+  constraint prevents duplicate short codes.
+- **Caching does not bypass correctness.** Cache lifetimes are capped by link expiration.
+  Both cached and uncached redirects check expiration before recording a click.
+- **Analytics remain persistent.** Every accepted redirect records a PostgreSQL click event,
+  including cache hits. Expired links return `410 Gone` without recording clicks.
+- **Access is scoped to the owner.** Redirects are public; link listings and analytics require
+  authentication and enforce ownership.
 
 ## Run with Docker Compose
 
-Start Docker Desktop with the Linux container engine running. Run the commands below from the
-project root. Python and the service dependencies run inside containers, so a host Python virtual
-environment is not needed for this workflow.
+Start Docker Desktop with Linux containers enabled. Run commands from the project root;
+no local Python installation is needed for this workflow.
 
 Create or update `.env` beside `compose.yaml`, preserving any existing local settings:
 
@@ -23,14 +34,9 @@ JWT_SECRET_KEY=replace_with_a_random_secret
 POSTGRES_PASSWORD=replace_with_a_random_hex_password
 ```
 
-Replace both placeholders with independently generated random values. Use a long random JWT secret
-(for example, 32 random bytes represented as 64 hexadecimal characters). Use a random hexadecimal
-database password because Compose embeds it in a connection URL. Other passwords may require URL
-encoding. Keep `.env` private; it is excluded from Git and the Docker build context.
-
-Compose supplies the API's `DATABASE_URL` and `REDIS_URL` using the internal service names `db` and
-`redis`. The container database is separate from your Windows PostgreSQL database; existing Windows
-users and links are not copied into it.
+Use independently generated secrets, such as 32 random bytes encoded as hexadecimal for each value.
+Hexadecimal avoids password URL-encoding issues. Keep `.env` private; it is excluded from Git and
+the Docker build context.
 
 Build the API image, start its dependencies, apply migrations, and start the API:
 
@@ -41,72 +47,52 @@ docker compose run --rm api alembic upgrade head
 docker compose up -d api
 ```
 
-The migration command runs in a temporary API container and removes that container afterward.
-PostgreSQL data remains in the named volume. The API waits for PostgreSQL's readiness check, but
-that check does not apply migrations; the migration step is still required.
+Open [Swagger UI](http://127.0.0.1:8000/docs). Sign up, log in, and enter the returned access token
+in **Authorize** to create links and view analytics.
 
-If another application is using port `8000`, stop it before starting the API container.
+Only the API is exposed on `127.0.0.1:8000`; PostgreSQL and Redis use the internal Compose network.
+The container database is separate from any existing local database.
 
-Visit [the API documentation](http://127.0.0.1:8000/docs) or
-[the health endpoint](http://127.0.0.1:8000/api/v1/health).
-On a fresh database, sign up and log in through the API to create your first user and access token.
-Only the API port is published to Windows; PostgreSQL and Redis communicate over the Compose network.
+- Rebuild after code changes: `docker compose up -d --build`.
+- Apply new migrations before updating the API, using the startup sequence above.
+- Stop the stack: `docker compose down`. Data persists in the `postgres_data` volume;
+  adding `--volumes` deletes that storage.
 
-## Everyday Commands
+## API Overview
 
-Start an already initialized stack:
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| POST | `/api/v1/auth/signup` | Create an account |
+| POST | `/api/v1/auth/login` | Obtain an access token |
+| GET | `/api/v1/auth/me` | Retrieve the authenticated user |
+| POST | `/api/v1/links` | Create a short link |
+| GET | `/api/v1/links` | List the current user's links |
+| GET | `/api/v1/links/{short_code}/analytics` | View an owned link's click count |
+| GET | `/{short_code}` | Redirect to the destination |
 
-```powershell
-docker compose up -d
-```
+Request schemas and error responses are documented in Swagger UI.
 
-After changing Python code or dependencies, rebuild the image and update the running API:
+## Tests and CI
 
-```powershell
-docker compose up -d --build
-```
+The 26-test suite covers authentication, ownership, alias validation, expiration, redirects,
+click recording, and cache behavior. Database tests use a separate PostgreSQL instance and
+roll back changes after each test. Redirect tests mock Redis; no running API or Redis is required.
 
-The image contains a copy of the project from build time. Restarting a container alone does not
-copy in code changes. If a change includes new migrations, build the image and apply those
-migrations before updating the API, using the first-time startup sequence above.
-
-Inspect container status and recent API logs:
-
-```powershell
-docker compose ps
-docker compose logs --tail 50 api
-```
-
-Validate the Compose configuration without printing resolved secrets:
+With a Python 3.13 virtual environment active and Docker running, install the development
+dependencies and start the test database:
 
 ```powershell
-docker compose config --quiet
+python -m pip install -e ".[dev]"
+docker compose -f compose.test.yaml -p url-shortener-tests up -d db_test
 ```
 
-Stop and remove this project's containers and network while retaining its named database volume:
+Once PostgreSQL is ready, run the tests, linting, and formatting checks:
 
 ```powershell
-docker compose down
+python -m pytest tests -v
+ruff check .
+ruff format --check .
 ```
 
-The `postgres_data` volume preserves users, links, and click events across container replacement.
-Do not add `--volumes` to the shutdown command unless you intend to delete that database storage.
-Redis holds rebuildable cache data; PostgreSQL is the source of truth.
-
-PostgreSQL's initialization settings apply when its volume is empty. Changing `POSTGRES_PASSWORD`
-in `.env` later does not change the password stored in an existing database.
-
-## Roadmap
-
-- [x] Checkpoint 0: FastAPI foundation
-- [x] Checkpoint 1: PostgreSQL configuration, engine, and sessions
-- [x] Checkpoint 2: First SQLAlchemy model and initial Alembic migration
-- [x] Checkpoint 3: Generate, create, and list short links
-- [x] Checkpoint 4: Short-code collision handling and redirects
-- [x] Checkpoint 5: Click events and analytics
-- [x] Checkpoint 6: Signup, login, JWT authentication, and link ownership
-- [x] Checkpoint 7: Custom aliases and expiration dates
-- [x] Checkpoint 8: Redis redirect caching and invalidation
-- [x] Checkpoint 9: Docker and Docker Compose
-- [x] Checkpoint 10: pytest test suite
-- [ ] Checkpoint 11: GitHub Actions, structured logging, and API documentation polish
+Tests apply Alembic migrations automatically. [GitHub Actions](.github/workflows/ci.yml) runs
+the same checks with a PostgreSQL service on every push and pull request.
