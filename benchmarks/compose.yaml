@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:18
+    ports:
+      - "127.0.0.1:5434:5432"
+    environment:
+      POSTGRES_DB: url_shortener_benchmark
+      POSTGRES_USER: benchmark
+      POSTGRES_PASSWORD: benchmark
+    volumes:
+      - benchmark_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "benchmark", "-d", "url_shortener_benchmark"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+  redis:
+    image: redis:7
+    ports:
+      - "127.0.0.1:6381:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+volumes:
+  benchmark_data:

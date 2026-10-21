@@ -72,8 +72,8 @@ Follow this sequence:
 1. Checkpoint 0: FastAPI foundation
 2. Checkpoint 1: PostgreSQL, configuration, engine, connection, and session concepts
 3. Checkpoint 2: First SQLAlchemy model and initial Alembic migration
-4. Checkpoint 3: Create and list short links
-5. Checkpoint 4: Generate short codes and implement redirects
+4. Checkpoint 3: Generate basic short codes, create, and list short links
+5. Checkpoint 4: Refine short-code generation and implement redirects
 6. Checkpoint 5: Record click events and expose analytics
 7. Checkpoint 6: User signup, login, JWT authentication, and link ownership
 8. Checkpoint 7: Custom aliases and expiry dates through Alembic migrations
