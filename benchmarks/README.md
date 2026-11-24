@@ -37,10 +37,6 @@ exactly one cache hit per measured request and zero misses. Each run persisted e
 clicks (2,000 measured plus 200 warmup). No request failures were observed. A final database
 check confirmed that the harness removed its generated users, links, and clicks.
 
-## Resume Wording
-
-> Reduced median redirect latency by 14% (13.43 to 11.55 ms) using Redis caching in a local
-> benchmark with 8 concurrent clients and 10,000 stored links, while preserving click analytics.
 
 The full experiment comprises 32,000 requests; the
 concurrency-8 comparison specifically comprises 16,000 requests, split evenly between the modes.
