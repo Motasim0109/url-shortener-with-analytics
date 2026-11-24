@@ -22,8 +22,6 @@ and throughput increased **16.0%**. Latency reduction is `(baseline - cached) / 
 Throughput increase is `(cached - baseline) / baseline`.
 
 At concurrency 1, median latency decreased **6.3%**, but p95 was unchanged and p99 was worse.
-Do not describe the result as a universal latency improvement. Both modes still synchronously
-insert and commit click events to PostgreSQL. Redis eliminates the short-link lookup, not that write.
 
 Per-round median results at concurrency 8 demonstrate variability rather than only the best round:
 
@@ -44,9 +42,8 @@ check confirmed that the harness removed its generated users, links, and clicks.
 > Reduced median redirect latency by 14% (13.43 to 11.55 ms) using Redis caching in a local
 > benchmark with 8 concurrent clients and 10,000 stored links, while preserving click analytics.
 
-Keep the words **local benchmark**. The full experiment comprises 32,000 requests; the
+The full experiment comprises 32,000 requests; the
 concurrency-8 comparison specifically comprises 16,000 requests, split evenly between the modes.
-Do not claim a production improvement, a mixed-cache-hit workload, or thousands of requests/second.
 
 ## Method
 
